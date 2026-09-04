@@ -78,7 +78,7 @@ const BRANCH_SYLLABUS = {
         "Sem 6": ["Environmental Engineering", "Foundation Engineering", "Structural Engineering – II (Steel Structures)", "Professional Elective – I", "Open Elective – I", "Environmental Engineering Laboratory", "Computer Aided Design Laboratory", "Advanced English Communication Skills Laboratory", "Industry Oriented Mini Project/ Internship", "Environmental Science"],
         "Sem 7": ["Quantity Survey & Valuation", "Project Management", "Professional Elective – II", "Professional Elective – III", "Professional Elective – IV", "Open Elective – II", "Civil Engineering Software Laboratory", "Project Stage – I"]
     }
-}
+};
 
 function App() {
   const [step, setStep] = useState(1);
@@ -88,43 +88,113 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const getScoreColor = (value) => {
+    if (value >= 80) return '#00ff88';
+    if (value >= 60) return '#4facfe';
+    if (value >= 40) return '#f1c40f';
+    return '#ff4d4d';
+  };
+
   const downloadPDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-    doc.setFontSize(22);
+    // Header Background Accent Box
+    doc.setFillColor(17, 17, 22);
+    doc.rect(0, 0, pageWidth, 45, 'F');
+
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(79, 172, 254);
-    doc.text("CAREER NAVIGATION ROADMAP", pageWidth / 2, 20, { align: "center" });
-    doc.setFontSize(16);
-    doc.setTextColor(0, 255, 136);
-    doc.text(`Predicted Role: ${results.prediction}`, pageWidth / 2, 35, { align: "center" });
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    const disclaimer = "Disclaimer: This roadmap is for guidance purposes only and based on academic data analysis. It is not a guaranteed career path.";
-    const splitDisclaimer = doc.splitTextToSize(disclaimer, pageWidth - 40);
-    doc.text(splitDisclaimer, 20, 45);
+    doc.text("CAREER NAVIGATOR REPORT", pageWidth / 2, 18, { align: "center" });
 
     doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    let cursorY = 65;
+    doc.setTextColor(0, 255, 136);
+    doc.text(`Predicted Role: ${results.prediction}`, pageWidth / 2, 28, { align: "center" });
 
-    results.roadmap.forEach((phase, index) => {
-      if (cursorY > 260) { doc.addPage(); cursorY = 20; }
-      doc.setFont("helvetica", "bold");
-      doc.text(`Phase ${index + 1}:`, 20, cursorY);
-      cursorY += 7;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(phase, pageWidth - 40);
-      doc.text(lines, 20, cursorY);
-      cursorY += (lines.length * 6) + 10;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(180, 180, 180);
+    doc.text(`Specialization: ${branch} | Year/Sem: ${currentYear} | Generated: ${currentDate}`, pageWidth / 2, 36, { align: "center" });
+
+    let cursorY = 55;
+
+    // Skill Summary Section
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(79, 172, 254);
+    doc.text("SKILL PROFICIENCY SUMMARY", 20, cursorY);
+    cursorY += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+
+    const skills = Object.entries(results.pillar_stats);
+    skills.forEach(([skill, val], index) => {
+      const col = index % 2;
+      const xPos = col === 0 ? 20 : 110;
+      doc.text(`• ${skill.replace('_', ' ').toUpperCase()}: ${val}%`, xPos, cursorY);
+      if (col === 1 || index === skills.length - 1) {
+        cursorY += 6;
+      }
     });
 
-    doc.save(`${results.prediction}_Roadmap.pdf`);
+    cursorY += 8;
+    doc.setDrawColor(220, 220, 220);
+    doc.line(20, cursorY, pageWidth - 20, cursorY);
+    cursorY += 10;
+
+    // Career Roadmap Title
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(79, 172, 254);
+    doc.text("ACTIONABLE CAREER ROADMAP", 20, cursorY);
+    cursorY += 10;
+
+    results.roadmap.forEach((phase, index) => {
+      const phaseLines = doc.splitTextToSize(phase, pageWidth - 45);
+      const phaseHeight = (phaseLines.length * 5) + 12;
+
+      if (cursorY + phaseHeight > 270) {
+        doc.addPage();
+        cursorY = 20;
+      }
+
+      doc.setFillColor(245, 247, 250);
+      doc.roundedRect(18, cursorY, pageWidth - 36, phaseHeight, 3, 3, 'F');
+      doc.setFillColor(79, 172, 254);
+      doc.rect(18, cursorY, 3, phaseHeight, 'F');
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(30, 30, 30);
+      doc.text(`Phase ${index + 1}:`, 25, cursorY + 8);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(60, 60, 60);
+
+      const bodyText = phase.split('\n').slice(1).join('\n') || phase;
+      const lines = doc.splitTextToSize(bodyText, pageWidth - 50);
+      doc.text(lines, 25, cursorY + 14);
+
+      cursorY += phaseHeight + 8;
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Career Navigator AI Platform — Page ${i} of ${pageCount}`, pageWidth / 2, 287, { align: "center" });
+    }
+
+    doc.save(`${results.prediction.replace(/[^a-zA-Z0-9]/g, '_')}_Roadmap.pdf`);
   };
 
-const handleGradeSubmit = async (grades) => {
+  const handleGradeSubmit = async (grades) => {
     if (Object.keys(grades).length === 0) {
         setMessage("⚠️ Please enter your grades before generating a roadmap.");
         return;
@@ -132,7 +202,7 @@ const handleGradeSubmit = async (grades) => {
 
     const hasEmptyGrade = Object.values(grades).some(g => g === "");
     if (hasEmptyGrade) {
-        setMessage("⚠️ Some subjects are missing grades. Please fill them all correctly.");
+        setMessage("⚠️ Some subjects are missing grades. Please select grades for all subjects.");
         return;
     }
 
@@ -140,74 +210,111 @@ const handleGradeSubmit = async (grades) => {
     setLoading(true);
 
     try {
-        const response = await axios.post('http://127.0.0.1:5000/predict', {
-            branch: branch,
-            year_sem: currentYear,
-            grades: grades 
-        });
+        let response;
+        try {
+            response = await axios.post('http://127.0.0.1:5000/predict', {
+                branch: branch,
+                year_sem: currentYear,
+                grades: grades
+            });
+        } catch (flaskErr) {
+            response = await axios.post('http://127.0.0.1:5001/api/predict', {
+                branch: branch,
+                year_sem: currentYear,
+                grades: grades
+            });
+        }
 
         if (response.data && response.data.roadmap) {
             setResults(response.data); 
             setStep(3); 
+        } else if (response.data && response.data.error) {
+            setMessage(`❌ Error: ${response.data.error}`);
         }
     } 
     catch (error) {
-        setMessage("❌ AI System Offline. Please ensure the Python server is running.");
+        setMessage("❌ AI System Offline. Please ensure either backend service is running.");
     } 
     finally {
         setLoading(false);
     }
-};
+  };
 
   return (
     <div style={{ backgroundColor: '#0a0a0c', minHeight: '100vh', color: '#fff', padding: '40px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
 
+        <header style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h1 style={{ color: '#4facfe', margin: '0 0 8px 0', letterSpacing: '2px', fontSize: '2.2rem' }}>
+            🧭 CAREER NAVIGATOR
+          </h1>
+          <p style={{ color: '#888', margin: 0, fontSize: '14px' }}>
+            AI-Powered Academic Performance Analytics & Strategic Career Guidance
+          </p>
+        </header>
+
         {loading && (
-          <div style={{ textAlign: 'center', marginTop: '150px' }}>
-            <h2 style={{ color: '#4facfe', letterSpacing: '4px', animation: 'pulse 1.5s infinite' }}>
-              ANALYZING ACADEMIC PROFILE...
+          <div style={{ textAlign: 'center', marginTop: '120px' }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              border: '4px solid rgba(79, 172, 254, 0.2)',
+              borderTopColor: '#4facfe',
+              borderRadius: '50%',
+              margin: '0 auto 20px auto',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <h2 style={{ color: '#4facfe', letterSpacing: '3px', animation: 'pulse 1.5s infinite', fontSize: '18px' }}>
+              ANALYZING ACADEMIC PROFILE & MAPPING PILLARS...
             </h2>
           </div>
         )}
 
         {!loading && step < 3 && (
-          <div style={{ background: '#111116', padding: '40px', borderRadius: '15px', border: '1px solid #1e1e24' }}>
-    {step === 1 ? (
-      <div style={{ textAlign: 'center' }}>
-        {message && (
-          <div style={{
-            background: 'rgba(79, 172, 254, 0.1)',
-            color: '#4facfe', padding: '15px', borderRadius: '8px',
-            marginBottom: '20px', border: '1px solid #4facfe',
-            textAlign: 'center', fontWeight: 'bold'
-          }}>
-            {message}
-          </div>
-        )}
-                <h2 style={{ letterSpacing: '2px', marginBottom: '30px' }}>SELECT SPECIALIZATION</h2>
-        <select value={currentYear} onChange={(e) => setCurrentYear(e.target.value)} style={selectStyle}>
-          {Object.keys(YEAR_SEMESTER_MAP).map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select value={branch} onChange={(e) => setBranch(e.target.value)} style={selectStyle}>
-          {Object.keys(BRANCH_SYLLABUS).map(b => <option key={b} value={b}>{b}</option>)}
-        </select>
+          <div style={{ background: '#111116', padding: '35px', borderRadius: '15px', border: '1px solid #1e1e24' }}>
+            {step === 1 ? (
+              <div style={{ textAlign: 'center' }}>
+                {message && (
+                  <div style={{
+                    background: 'rgba(79, 172, 254, 0.1)',
+                    color: '#4facfe', padding: '15px', borderRadius: '8px',
+                    marginBottom: '20px', border: '1px solid #4facfe',
+                    textAlign: 'center', fontWeight: 'bold'
+                  }}>
+                    {message}
+                  </div>
+                )}
+                <h2 style={{ letterSpacing: '2px', marginBottom: '25px', fontSize: '18px', color: '#e0e0e0' }}>SELECT SPECIALIZATION & ACADEMIC YEAR</h2>
 
-        <button 
-          onClick={() => {
-            if (currentYear === "1-1") {
-              setMessage("🚀 You've just started your journey! Please wait until you complete your first semester to use the Career Navigator.");
-            } else {
-              setMessage(""); 
-              setStep(2);
-            }
-          }} 
-          style={buttonStyle}
-        >
-          INITIALIZE →
-        </button>
-      </div>
-    ) : (
+                <div style={{ textAlign: 'left', marginBottom: '15px' }}>
+                  <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Current Year & Semester</label>
+                  <select value={currentYear} onChange={(e) => setCurrentYear(e.target.value)} style={selectStyle}>
+                    {Object.keys(YEAR_SEMESTER_MAP).map(y => <option key={y} value={y}>{y} (Completed through {y})</option>)}
+                  </select>
+                </div>
+
+                <div style={{ textAlign: 'left', marginBottom: '25px' }}>
+                  <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Branch / Field of Study</label>
+                  <select value={branch} onChange={(e) => setBranch(e.target.value)} style={selectStyle}>
+                    {Object.keys(BRANCH_SYLLABUS).map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (currentYear === "1-1") {
+                      setMessage("🚀 You've just started your journey! Please wait until you complete your first semester to use the Career Navigator.");
+                    } else {
+                      setMessage("");
+                      setStep(2);
+                    }
+                  }}
+                  style={buttonStyle}
+                >
+                  INITIALIZE TRANSCRIPT ENTRY →
+                </button>
+              </div>
+            ) : (
               <div>
                 {message && (
                   <div style={{
@@ -219,6 +326,15 @@ const handleGradeSubmit = async (grades) => {
                     {message}
                   </div>
                 )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <button
+                    onClick={() => { setStep(1); setMessage(""); }}
+                    style={{ background: 'transparent', border: '1px solid #333', color: '#888', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    ← Back to Branch Selection
+                  </button>
+                  <span style={{ fontSize: '12px', color: '#4facfe' }}>{branch} | Year/Sem: {currentYear}</span>
+                </div>
                 <GradeForm
                   branch={branch}
                   currentYear={currentYear}
@@ -232,7 +348,7 @@ const handleGradeSubmit = async (grades) => {
         )}
 
         {!loading && step === 3 && results && (
-          <div style={{ animation: 'fadeIn 1s ease-in' }}>
+          <div style={{ animation: 'fadeIn 0.8s ease-in' }}>
             <div style={{
               background: 'rgba(79, 172, 254, 0.1)',
               border: '1px solid #4facfe',
@@ -241,44 +357,55 @@ const handleGradeSubmit = async (grades) => {
               marginBottom: '30px',
               textAlign: 'center'
             }}>
-              <span style={{ color: '#4facfe', fontWeight: 'bold', fontSize: '14px', letterSpacing: '1px' }}>
+              <span style={{ color: '#4facfe', fontWeight: 'bold', fontSize: '13px', letterSpacing: '1px' }}>
                 ℹ️ CAREER GUIDANCE ADVISORY
               </span>
               <p style={{ color: '#bbb', fontSize: '12px', margin: '5px 0 0 0', lineHeight: '1.4' }}>
-                This roadmap is generated based on your academic performance and is intended for <b>guidance purposes only</b>.
-                It is not a fixed or guaranteed career path. Please consult with academic advisors or industry professionals
-                before making final career decisions.
+                This roadmap is generated based on your academic performance and model analytics for <b>guidance purposes only</b>.
+                It serves as a tailored preparation blueprint.
               </p>
             </div>
 
-            <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-              <span style={{ color: '#ff4d4d', letterSpacing: '5px', fontSize: '12px' }}>PREDICTED ROLE</span>
-              <h1 style={{ color: '#00ff88', fontSize: '3.5rem', margin: '10px 0', textShadow: '0 0 20px rgba(0,255,136,0.3)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '45px', background: '#111116', padding: '30px', borderRadius: '15px', border: '1px solid #1e1e24' }}>
+              <span style={{ color: '#ff4d4d', letterSpacing: '4px', fontSize: '12px', fontWeight: 'bold' }}>PREDICTED OPTIMAL CAREER ROLE</span>
+              <h1 style={{ color: '#00ff88', fontSize: '3rem', margin: '10px 0', textShadow: '0 0 20px rgba(0,255,136,0.25)' }}>
                 {results.prediction}
               </h1>
+              <span style={{ color: '#888', fontSize: '13px' }}>Evaluated across 9 Core Engineering Skill Pillars</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '40px' }}>
-              <h3 style={{ color: '#4facfe', gridColumn: '1/-1', borderBottom: '1px solid #333', paddingBottom: '10px' }}>SKILL PROFICIENCY</h3>
-              {Object.entries(results.pillar_stats).map(([skill, value]) => (
-                <div key={skill} style={{ background: '#1a1a20', padding: '15px', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ textTransform: 'uppercase', fontSize: '11px', fontWeight: 'bold' }}>{skill.replace('_', ' ')}</span>
-                    <span style={{ color: '#00ff88', fontWeight: 'bold' }}>{value}%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '15px', marginBottom: '40px' }}>
+              <h3 style={{ color: '#4facfe', gridColumn: '1/-1', borderBottom: '1px solid #222', paddingBottom: '10px', margin: '0 0 5px 0' }}>
+                SKILL PROFICIENCY DASHBOARD
+              </h3>
+              {Object.entries(results.pillar_stats).map(([skill, value]) => {
+                const color = getScoreColor(value);
+                return (
+                  <div key={skill} style={{ background: '#14141a', padding: '16px', borderRadius: '10px', border: '1px solid #1e1e24' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
+                      <span style={{ textTransform: 'uppercase', fontSize: '11px', fontWeight: 'bold', color: '#d0d0d0' }}>
+                        {skill.replace('_', ' ')}
+                      </span>
+                      <span style={{ color: color, fontWeight: 'bold', fontSize: '14px' }}>
+                        {value}%
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: '#222', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: '10px', transition: 'width 1s ease-in-out' }}></div>
+                    </div>
                   </div>
-                  <div style={{ width: '100%', height: '6px', background: '#333', borderRadius: '10px' }}>
-                    <div style={{ width: `${value}%`, height: '100%', background: '#00ff88', borderRadius: '10px', transition: 'width 1s ease-in-out' }}></div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div style={{ display: 'grid', gap: '20px' }}>
-              <h3 style={{ color: '#4facfe', borderBottom: '1px solid #333', paddingBottom: '10px' }}>CAREER ROADMAP</h3>
+              <h3 style={{ color: '#4facfe', borderBottom: '1px solid #222', paddingBottom: '10px', margin: 0 }}>
+                PHASE-WISE ACTIONABLE ROADMAP
+              </h3>
               {results.roadmap.map((phase, i) => (
-                <div key={i} style={{ background: '#111116', padding: '25px', borderRadius: '12px', borderLeft: '5px solid #4facfe' }}>
+                <div key={i} style={{ background: '#111116', padding: '22px 25px', borderRadius: '12px', borderLeft: '5px solid #4facfe', borderTop: '1px solid #1e1e24', borderRight: '1px solid #1e1e24', borderBottom: '1px solid #1e1e24' }}>
                   {phase.split('\n').map((line, idx) => (
-                    <p key={idx} style={{ color: idx === 0 ? '#4facfe' : '#bbb', fontWeight: idx === 0 ? 'bold' : 'normal', margin: '5px 0' }}>
+                    <p key={idx} style={{ color: idx === 0 ? '#4facfe' : '#bbb', fontWeight: idx === 0 ? 'bold' : 'normal', margin: idx === 0 ? '0 0 8px 0' : '4px 0', fontSize: idx === 0 ? '15px' : '13px' }}>
                       {line}
                     </p>
                   ))}
@@ -289,16 +416,16 @@ const handleGradeSubmit = async (grades) => {
             <div style={{ display: 'flex', gap: '15px', marginTop: '40px' }}>
               <button
                 onClick={downloadPDF}
-                style={{ ...buttonStyle, background: '#00ff88', color: '#000', flex: 2 }}
+                style={{ ...buttonStyle, background: '#00ff88', color: '#000', flex: 2, boxShadow: '0 4px 15px rgba(0,255,136,0.3)' }}
               >
-                📥 DOWNLOAD ROADMAP (PDF)
+                📥 DOWNLOAD DETAILED ROADMAP (PDF)
               </button>
 
               <button
                 onClick={() => { setStep(1); setResults(null); setMessage(""); }}
-                style={{ ...buttonStyle, background: 'transparent', border: '1px solid #333', flex: 1 }}
+                style={{ ...buttonStyle, background: 'transparent', border: '1px solid #333', color: '#bbb', flex: 1 }}
               >
-                REBOOT SYSTEM
+                🔄 REBOOT SYSTEM
               </button>
             </div>
           </div>
@@ -308,7 +435,7 @@ const handleGradeSubmit = async (grades) => {
   );
 }
 
-const selectStyle = { width: '100%', padding: '15px', background: '#050505', color: '#fff', border: '1px solid #333', borderRadius: '8px', marginBottom: '20px' };
-const buttonStyle = { width: '100%', padding: '18px', background: '#ff4d4d', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', letterSpacing: '2px' };
+const selectStyle = { width: '100%', padding: '14px', background: '#050505', color: '#fff', border: '1px solid #333', borderRadius: '8px', fontSize: '14px' };
+const buttonStyle = { width: '100%', padding: '16px', background: '#ff4d4d', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', letterSpacing: '1px', fontSize: '14px' };
 
 export default App;
